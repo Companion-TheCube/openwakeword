@@ -18,6 +18,7 @@ import os
 import numpy as np
 from openwakeword.model import Model
 import argparse
+import base64
 
 # Parse input arguments
 parser=argparse.ArgumentParser()
@@ -39,7 +40,7 @@ parser.add_argument(
     "--inference_framework",
     help="The inference framework to use (either 'onnx' or 'tflite'",
     type=str,
-    default='tflite',
+    default='onnx',
     required=False
 )
 parser.add_argument(
@@ -49,8 +50,27 @@ parser.add_argument(
     default="\0openww.sock",
     required=False
 )
+parser.add_argument(
+    "--use_ip_socket",
+    help="Use an IP socket instead of a Unix socket.",
+    action="store_true",
+    required=False
+)
+parser.add_argument(
+    "--ip_port",
+    help="The port to use if using an IP socket.",
+    type=int,
+    default=5000,
+    required=False
+)
 
 args=parser.parse_args()
+
+# check to see if we are on windows
+SOCKET_TYPE = socket.AF_UNIX
+if os.name == 'nt' or args.use_ip_socket:
+    SOCKET_TYPE = socket.AF_INET
+PORT = args.ip_port
 
 # Get microphone stream
 # FORMAT = pyaudio.paInt16
@@ -64,8 +84,11 @@ SOCK = args.socket_path
 if os.path.exists(SOCK):
     os.remove(SOCK)
 
-server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-server_socket.bind(SOCK)
+server_socket = socket.socket(SOCKET_TYPE, socket.SOCK_STREAM)
+if(SOCKET_TYPE == socket.AF_INET):
+    server_socket.bind(('', PORT))
+else:
+    server_socket.bind(SOCK)
 server_socket.listen(1)
 
 # Load pre-trained openwakeword models
@@ -76,7 +99,7 @@ else:
 
 n_models = len(owwModel.models.keys())
 
-# Run capture loop continuosly, checking for wakewords
+# Run capture loop continuously, checking for wakewords
 if __name__ == "__main__":
     # Generate output string header
     print("\n\n")
@@ -89,34 +112,21 @@ if __name__ == "__main__":
         # Get audio
         #audio = np.frombuffer(mic_stream.read(CHUNK), dtype=np.int16)
         client_socket, _ = server_socket.accept()
-        audio = client_socket.recv(CHUNK)
+        # read the audio from the socket as base64 encoded string. 
+        audio = client_socket.recv((CHUNK + 2) // 3 * 4).decode("utf-8")
         if not audio:
             continue
-
+        # audio is base64 encoded, decode it
+        audio = base64.b64decode(audio)
+        
         # Feed to openWakeWord model
         prediction = owwModel.predict(audio)
-
-        # Column titles
-        n_spaces = 16
-        output_string_header = """
-            Model Name         | Score | Wakeword Status
-            --------------------------------------
-            """
-
         for mdl in owwModel.prediction_buffer.keys():
             # Add scores in formatted table
             scores = list(owwModel.prediction_buffer[mdl])
-            curr_score = format(scores[-1], '.20f').replace("-", "")
 
             if mdl.lower.includes("thecube"):
                 if scores[-1] >= 0.5:
                     client_socket.sendall(b"DETECTED")
                 else:
                     client_socket.sendall(b"NOT")
-
-            output_string_header += f"""{mdl}{" "*(n_spaces - len(mdl))}   | {curr_score[0:5]} | {"--"+" "*20 if scores[-1] <= 0.5 else "Wakeword Detected!"}
-            """
-
-        # Print results table
-        print("\033[F"*(4*n_models+1))
-        print(output_string_header, "                             ", end='\r')
