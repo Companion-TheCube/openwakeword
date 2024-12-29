@@ -84,6 +84,8 @@ SOCK = args.socket_path
 if os.path.exists(SOCK):
     os.remove(SOCK)
 
+# print the socket path
+print(f"Socket path: {SOCK}")
 server_socket = socket.socket(SOCKET_TYPE, socket.SOCK_STREAM)
 if(SOCKET_TYPE == socket.AF_INET):
     server_socket.bind(('', PORT))
@@ -118,14 +120,19 @@ if __name__ == "__main__":
             continue
         # audio is base64 encoded, decode it
         audio = base64.b64decode(audio)
+
+        # convert byte array to numpy array
+        audio = np.frombuffer(audio, dtype=np.int16)
         
         # Feed to openWakeWord model
         prediction = owwModel.predict(audio)
         for mdl in owwModel.prediction_buffer.keys():
             # Add scores in formatted table
             scores = list(owwModel.prediction_buffer[mdl])
-
-            if mdl.lower.includes("thecube"):
+            print(f"Model: {mdl}")
+            if scores[-1] >= 0.5:
+                print(f"Scores: {scores}")
+            if "thecube" in mdl.lower():
                 if scores[-1] >= 0.5:
                     client_socket.sendall(b"DETECTED")
                 else:
