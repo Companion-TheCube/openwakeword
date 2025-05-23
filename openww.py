@@ -72,19 +72,6 @@ parser.add_argument(
     default="/tmp/openww",
     required=False
 )
-parser.add_argument(
-    "--use_ip_socket",
-    help="Use an IP socket instead of a Unix socket.",
-    action="store_true",
-    required=False
-)
-parser.add_argument(
-    "--ip_port",
-    help="The port to use if using an IP socket.",
-    type=int,
-    default=5000,
-    required=False
-)
 
 args=parser.parse_args()
 
