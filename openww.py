@@ -72,6 +72,13 @@ parser.add_argument(
     default="/tmp/openww",
     required=False
 )
+parser.add_argument(
+    "--detection_threshold",
+    help="Threshold for a positive detection. 0.00 to 1.00",
+    type=int,
+    default=0.3,
+    required=False
+)
 
 args=parser.parse_args()
 
@@ -86,6 +93,7 @@ def recv_all(sock, num_bytes):
 
 CHUNK = args.chunk_size
 SOCK = os.path.abspath(args.socket_path)
+THRESHOLD = args.detection_threshold
 
 if os.path.exists(SOCK):
     os.unlink(SOCK)
@@ -119,7 +127,7 @@ if __name__ == "__main__":
     client_socket, _ = server_socket.accept()
     while True:
         try:
-            client_socket.settimeout(1)
+            # client_socket.settimeout(1)
             audio = recv_all(client_socket, CHUNK * 2)
         except socket.timeout:
             print("Socket timeout")
@@ -137,7 +145,7 @@ if __name__ == "__main__":
         prediction = owwModel.predict(audio)
         for mdl in owwModel.prediction_buffer.keys():
             scores = list(owwModel.prediction_buffer[mdl])
-            if scores[-1] >= 0.2:
+            if scores[-1] >= THRESHOLD:
                 client_socket.sendall(b"DETECTED____")
             else:
                 client_socket.sendall(b"NOT_DETECTED")
