@@ -108,7 +108,7 @@ if args.model_path != "":
         args.model_path = args.model_path.split(",")
     else:
         args.model_path = [args.model_path]
-    owwModel = Model(wakeword_models=args.model_path, inference_framework=args.inference_framework)
+    owwModel = Model(wakeword_model_paths=args.model_path, inference_framework=args.inference_framework)
 else:
     owwModel = Model(inference_framework=args.inference_framework)
 
