@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0",
+  "app": {
+    "id": "com.thecube.openwakeword",
+    "name": "OpenWakeWord",
+    "version": "0.1.0",
+    "vendor": "A-McD Technology LLC",
+    "description": "Wake word detection service for TheCube.",
+    "category": "system",
+    "args": [
+      "--model_path",
+      "hey_cube.onnx,hey_cuba.onnx,hey_cube2.onnx,hey_cue.onnx",
+      "--inference_framework",
+      "onnx"
+    ],
+    "working_directory": ".",
+    "type": "service",
+    "autostart": false,
+    "system_app": true
+  },
+  "runtime": {
+    "type": "python",
+    "distribution": "venv",
+    "compatibility": "3.12",
+    "python": {
+      "entry_script": "openww.py"
+    },
+    "restart_policy": "on-failure",
+    "max_restart_burst": 5,
+    "restart_window_seconds": 60,
+    "stop_timeout_seconds": 10,
+    "start_timeout_seconds": 15
+  },
+  "permissions": {
+    "platform": [
+      "audio.microphone",
+      "ipc.rpc_client"
+    ],
+    "filesystem": {
+      "read_only": [
+        "app://install"
+      ],
+      "read_write": [
+        "app://runtime",
+        "app://cache"
+      ]
+    },
+    "network": {
+      "allow": false,
+      "inbound": false,
+      "local_network": false
+    }
+  },
+  "environment": {
+    "allow_inherit": [],
+    "set": {
+      "PYTHONUNBUFFERED": "1"
+    }
+  }
+}
