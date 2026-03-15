@@ -23,7 +23,8 @@
     "distribution": "venv",
     "compatibility": "3.12",
     "python": {
-      "entry_script": "openww.py"
+      "entry_script": "openww.py",
+      "package_name": "openwakeword"
     },
     "restart_policy": "on-failure",
     "max_restart_burst": 5,
