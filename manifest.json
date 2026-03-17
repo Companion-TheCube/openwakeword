@@ -39,11 +39,20 @@
     ],
     "filesystem": {
       "read_only": [
-        "app://install"
+        "app://install",
+        "system://usr",
+        "system://bin",
+        "system://lib",
+        "system://lib64",
+        "system://etc",
+        "system://proc",
+        "system://sys",
+        "system://dev"
       ],
       "read_write": [
         "app://runtime",
-        "app://cache"
+        "app://cache",
+        "system://tmp"
       ]
     },
     "network": {
