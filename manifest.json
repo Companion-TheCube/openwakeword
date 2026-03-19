@@ -40,7 +40,12 @@
     "filesystem": {
       "read_only": [
         "app://install",
-        "system://proc"
+        "system://proc",
+        "system://dev",
+        "system://etc",
+        "system://usr",
+        "system://var",
+        "system://lib"
       ],
       "read_write": [
         "app://runtime",

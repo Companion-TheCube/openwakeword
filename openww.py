@@ -76,7 +76,7 @@ parser.add_argument(
     "--detection_threshold",
     help="Threshold for a positive detection. 0.00 to 1.00",
     type=float,
-    default=0.3,
+    default=0.25,
     required=False
 )
 
