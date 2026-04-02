@@ -157,63 +157,75 @@ if __name__ == "__main__":
     print("#"*100)
     print("\n")
 
-    client_socket = None
     # debug_wave = open_debug_wave(DEBUG_AUDIO_PATH)
     chunk_count = 0
     total_samples = 0
 
     try:
-        client_socket, _ = server_socket.accept()
         while True:
+            client_socket, _ = server_socket.accept()
+            print("Wake word client connected.")
             try:
-                # client_socket.settimeout(1)
-                audio = recv_all(client_socket, CHUNK * 2)
-            except socket.timeout:
-                print("Socket timeout")
-                continue
-            except socket.error as e:
-                print(f"Socket error: {e}")
-                break
-            if not audio:
-                print("No audio received")
-                continue
-            if len(audio) != CHUNK * 2:
-                print(f"Audio length (ERR): {len(audio)}")
-                continue
+                while True:
+                    try:
+                        # client_socket.settimeout(1)
+                        audio = recv_all(client_socket, CHUNK * 2)
+                    except socket.timeout:
+                        print("Socket timeout")
+                        continue
+                    except (ConnectionError, BrokenPipeError):
+                        print("Wake word client disconnected.")
+                        break
+                    except socket.error as e:
+                        print(f"Socket error: {e}")
+                        break
+                    if not audio:
+                        print("No audio received")
+                        break
+                    if len(audio) != CHUNK * 2:
+                        print(f"Audio length (ERR): {len(audio)}")
+                        continue
 
-            # if debug_wave is not None:
-            #     debug_wave.writeframes(audio)
+                    # if debug_wave is not None:
+                    #     debug_wave.writeframes(audio)
 
-            audio = np.frombuffer(audio, dtype=np.int16)
-            chunk_count += 1
-            total_samples += len(audio)
+                    audio = np.frombuffer(audio, dtype=np.int16)
+                    chunk_count += 1
+                    total_samples += len(audio)
 
-            if DEBUG_LOG_INTERVAL and chunk_count % DEBUG_LOG_INTERVAL == 0:
-                audio_i32 = audio.astype(np.int32)
-                rms = float(np.sqrt(np.mean(audio_i32.astype(np.float32) ** 2)))
-                peak = int(np.max(np.abs(audio_i32)))
-                total_seconds = total_samples / SAMPLE_RATE
-                print(
-                    f"Input audio: {total_seconds:.2f}s captured, "
-                    f"chunk={chunk_count}, rms={rms:.1f}, peak={peak}"
-                )
+                    if DEBUG_LOG_INTERVAL and chunk_count % DEBUG_LOG_INTERVAL == 0:
+                        audio_i32 = audio.astype(np.int32)
+                        rms = float(np.sqrt(np.mean(audio_i32.astype(np.float32) ** 2)))
+                        peak = int(np.max(np.abs(audio_i32)))
+                        total_seconds = total_samples / SAMPLE_RATE
+                        print(
+                            f"Input audio: {total_seconds:.2f}s captured, "
+                            f"chunk={chunk_count}, rms={rms:.1f}, peak={peak}"
+                        )
 
-            prediction = owwModel.predict(audio)
-            for mdl in owwModel.prediction_buffer.keys():
-                scores = list(owwModel.prediction_buffer[mdl])
-                if scores[-1] >= THRESHOLD:
-                    client_socket.sendall(b"DETECTED____")
-                    print(f"Wakeword detected! Model: {mdl}, Score: {scores[-1]:.4f}")
-                else:
-                    client_socket.sendall(b"NOT_DETECTED")
+                    prediction = owwModel.predict(audio)
+                    try:
+                        for mdl in owwModel.prediction_buffer.keys():
+                            scores = list(owwModel.prediction_buffer[mdl])
+                            if scores[-1] >= THRESHOLD:
+                                client_socket.sendall(b"DETECTED____")
+                                print(f"Wakeword detected! Model: {mdl}, Score: {scores[-1]:.4f}")
+                            else:
+                                client_socket.sendall(b"NOT_DETECTED")
+                    except (ConnectionError, BrokenPipeError):
+                        print("Wake word client disconnected during send.")
+                        break
+                    except socket.error as e:
+                        print(f"Socket error while sending detection result: {e}")
+                        break
+            finally:
+                client_socket.close()
     except KeyboardInterrupt:
         print("Stopping wake word listener.")
     finally:
         # if debug_wave is not None:
         #     debug_wave.close()
         #     print(f"Saved received audio to: {os.path.abspath(DEBUG_AUDIO_PATH)}")
-        if client_socket is not None:
-            client_socket.close()
         server_socket.close()
         if os.path.exists(SOCK):
             os.unlink(SOCK)
