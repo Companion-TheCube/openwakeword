@@ -13,7 +13,9 @@
       "--inference_framework",
       "onnx",
       "--debug_log_interval",
-      "0"
+      "0",
+      "--socket_path",
+      "/tmp/openww/openww"
     ],
     "working_directory": ".",
     "type": "service",
@@ -52,7 +54,7 @@
       "read_write": [
         "app://runtime",
         "app://cache",
-        "system://tmp"
+        "system://tmp/openww"
       ]
     },
     "network": {
