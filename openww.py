@@ -40,6 +40,7 @@
 import socket
 import os
 import glob
+import inspect
 import wave
 import numpy as np
 from openwakeword.model import Model
@@ -143,6 +144,30 @@ def resolve_bundle_model(name):
         f"Unable to locate bundled OpenWakeWord model '{name}'. Checked: {candidate_paths}"
     )
 
+MODEL_SIGNATURE = inspect.signature(Model.__init__)
+MODEL_PARAMETERS = MODEL_SIGNATURE.parameters
+
+def model_supports_argument(name):
+    return name in MODEL_PARAMETERS
+
+def create_openwakeword_model(model_paths=None):
+    model_kwargs = dict(preprocessor_kwargs)
+
+    if args.inference_framework and model_supports_argument("inference_framework"):
+        model_kwargs["inference_framework"] = args.inference_framework
+
+    if model_paths:
+        if model_supports_argument("wakeword_model_paths"):
+            model_kwargs["wakeword_model_paths"] = model_paths
+        elif model_supports_argument("wakeword_models"):
+            model_kwargs["wakeword_models"] = model_paths
+        else:
+            raise TypeError(
+                f"Unsupported openwakeword Model constructor: {MODEL_SIGNATURE}"
+            )
+
+    return Model(**model_kwargs)
+
 CHUNK = args.chunk_size
 SOCK = os.path.abspath(args.socket_path)
 THRESHOLD = args.detection_threshold
@@ -192,12 +217,9 @@ if args.model_path != "":
     ]
 
     print(f"Wakeword models: {', '.join(args.model_path)}")
-    owwModel = Model(
-        wakeword_model_paths=args.model_path,
-        **preprocessor_kwargs,
-    )
+    owwModel = create_openwakeword_model(args.model_path)
 else:
-    owwModel = Model(**preprocessor_kwargs)
+    owwModel = create_openwakeword_model()
 
 n_models = len(owwModel.models.keys())
 
