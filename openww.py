@@ -159,12 +159,13 @@ def create_openwakeword_model(model_paths=None):
     if model_paths:
         if model_supports_argument("wakeword_model_paths"):
             model_kwargs["wakeword_model_paths"] = model_paths
-        elif model_supports_argument("wakeword_models"):
-            model_kwargs["wakeword_models"] = model_paths
+        # elif model_supports_argument("wakeword_models"):
         else:
-            raise TypeError(
-                f"Unsupported openwakeword Model constructor: {MODEL_SIGNATURE}"
-            )
+            model_kwargs["wakeword_models"] = model_paths
+        # else:
+        #     raise TypeError(
+        #         f"Unsupported openwakeword Model constructor: {MODEL_SIGNATURE}"
+        #     )
 
     return Model(**model_kwargs)
 
