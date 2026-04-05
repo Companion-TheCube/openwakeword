@@ -39,6 +39,7 @@
 # Imports
 import socket
 import os
+import glob
 import wave
 import numpy as np
 from openwakeword.model import Model
@@ -97,6 +98,8 @@ parser.add_argument(
 
 args=parser.parse_args()
 
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+
 def recv_all(sock, num_bytes):
     buf = bytearray()
     while len(buf) < num_bytes:
@@ -105,6 +108,40 @@ def recv_all(sock, num_bytes):
             raise ConnectionError("Socket closed")
         buf.extend(chunk)
     return bytes(buf)
+
+def resolve_app_path(path):
+    if os.path.isabs(path):
+        return path
+    return os.path.join(APP_DIR, path)
+
+def resolve_bundle_model(name):
+    candidate_paths = [
+        os.path.join(APP_DIR, "resources", "models", name),
+    ]
+    candidate_paths.extend(
+        sorted(
+            glob.glob(
+                os.path.join(
+                    APP_DIR,
+                    "lib",
+                    "python*",
+                    "site-packages",
+                    "openwakeword",
+                    "resources",
+                    "models",
+                    name,
+                )
+            )
+        )
+    )
+
+    for candidate in candidate_paths:
+        if os.path.exists(candidate):
+            return candidate
+
+    raise FileNotFoundError(
+        f"Unable to locate bundled OpenWakeWord model '{name}'. Checked: {candidate_paths}"
+    )
 
 CHUNK = args.chunk_size
 SOCK = os.path.abspath(args.socket_path)
@@ -134,14 +171,34 @@ server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 server_socket.bind(SOCK)
 server_socket.listen(1)
 
+preprocessor_kwargs = {
+    "melspec_onnx_model_path": resolve_bundle_model("melspectrogram.onnx"),
+    "embedding_onnx_model_path": resolve_bundle_model("embedding_model.onnx"),
+}
+
+print(f"Melspectrogram model: {preprocessor_kwargs['melspec_onnx_model_path']}")
+print(f"Embedding model: {preprocessor_kwargs['embedding_onnx_model_path']}")
+
 if args.model_path != "":
     if "," in args.model_path:
         args.model_path = args.model_path.split(",")
     else:
         args.model_path = [args.model_path]
-    owwModel = Model(wakeword_model_paths=args.model_path, inference_framework=args.inference_framework)
+
+    args.model_path = [
+        resolve_app_path(path.strip())
+        for path in args.model_path
+        if path.strip()
+    ]
+
+    print(f"Wakeword models: {', '.join(args.model_path)}")
+    owwModel = Model(
+        wakeword_model_paths=args.model_path,
+        inference_framework=args.inference_framework,
+        **preprocessor_kwargs,
+    )
 else:
-    owwModel = Model()
+    owwModel = Model(**preprocessor_kwargs)
 
 n_models = len(owwModel.models.keys())
 
