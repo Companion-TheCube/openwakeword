@@ -162,6 +162,7 @@ def create_openwakeword_model(model_paths=None):
         # elif model_supports_argument("wakeword_models"):
         else:
             model_kwargs["wakeword_models"] = model_paths
+            model_kwargs["inference_framework"] = args.inference_framework
         # else:
         #     raise TypeError(
         #         f"Unsupported openwakeword Model constructor: {MODEL_SIGNATURE}"
