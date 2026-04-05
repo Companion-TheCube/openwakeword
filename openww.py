@@ -159,10 +159,14 @@ def create_openwakeword_model(model_paths=None):
     if model_paths:
         if model_supports_argument("wakeword_model_paths"):
             model_kwargs["wakeword_model_paths"] = model_paths
+            model_kwargs["melspec_onnx_model_path"] = resolve_bundle_model("melspectrogram.onnx")
+            model_kwargs["embedding_onnx_model_path"] = resolve_bundle_model("embedding_model.onnx")
         # elif model_supports_argument("wakeword_models"):
         else:
             model_kwargs["wakeword_models"] = model_paths
             model_kwargs["inference_framework"] = args.inference_framework
+            model_kwargs["melspec_model_path"] = resolve_bundle_model("melspectrogram.onnx")
+            model_kwargs["embedding_model_path"] = resolve_bundle_model("embedding_model.onnx")
         # else:
         #     raise TypeError(
         #         f"Unsupported openwakeword Model constructor: {MODEL_SIGNATURE}"
@@ -198,10 +202,7 @@ server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 server_socket.bind(SOCK)
 server_socket.listen(1)
 
-preprocessor_kwargs = {
-    "melspec_onnx_model_path": resolve_bundle_model("melspectrogram.onnx"),
-    "embedding_onnx_model_path": resolve_bundle_model("embedding_model.onnx"),
-}
+preprocessor_kwargs = {}
 
 print(f"Melspectrogram model: {preprocessor_kwargs['melspec_onnx_model_path']}")
 print(f"Embedding model: {preprocessor_kwargs['embedding_onnx_model_path']}")
