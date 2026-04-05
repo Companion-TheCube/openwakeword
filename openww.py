@@ -40,12 +40,9 @@
 import socket
 import os
 import wave
-from collections import deque
 import numpy as np
+from openwakeword.model import Model
 import argparse
-import onnxruntime as ort
-import openwakeword.model as openwakeword_model
-from openwakeword.utils import AudioFeatures as OpenWakeWordAudioFeatures
 
 parser=argparse.ArgumentParser()
 parser.add_argument(
@@ -99,43 +96,6 @@ parser.add_argument(
 )
 
 args=parser.parse_args()
-
-
-class CpuOnlyAudioFeatures(OpenWakeWordAudioFeatures):
-    def __init__(
-        self,
-        melspec_onnx_model_path=OpenWakeWordAudioFeatures.__init__.__defaults__[0],
-        embedding_onnx_model_path=OpenWakeWordAudioFeatures.__init__.__defaults__[1],
-        sr=16000,
-        ncpu=1
-    ):
-        # openWakeWord's upstream AudioFeatures prefers CUDA first. On the Pi 5
-        # that provider probe can crash while inspecting non-existent DRM paths,
-        # so construct the preprocessor sessions on CPU only from the start.
-        sessionOptions = ort.SessionOptions()
-        sessionOptions.inter_op_num_threads = ncpu
-        sessionOptions.intra_op_num_threads = ncpu
-        self.melspec_model = ort.InferenceSession(
-            melspec_onnx_model_path,
-            sess_options=sessionOptions,
-            providers=["CPUExecutionProvider"]
-        )
-        self.embedding_model = ort.InferenceSession(
-            embedding_onnx_model_path,
-            sess_options=sessionOptions,
-            providers=["CPUExecutionProvider"]
-        )
-        self.onnx_execution_provider = self.melspec_model.get_providers()[0]
-        self.raw_data_buffer = deque(maxlen=sr * 10)
-        self.melspectrogram_buffer = np.ones((76, 32))
-        self.melspectrogram_max_len = 10 * 97
-        self.accumulated_samples = 0
-        self.feature_buffer = self._get_embeddings(np.zeros(160000).astype(np.int16))
-        self.feature_buffer_max_len = 120
-
-
-openwakeword_model.AudioFeatures = CpuOnlyAudioFeatures
-Model = openwakeword_model.Model
 
 def recv_all(sock, num_bytes):
     buf = bytearray()
