@@ -204,9 +204,6 @@ server_socket.listen(1)
 
 preprocessor_kwargs = {}
 
-print(f"Melspectrogram model: {preprocessor_kwargs['melspec_onnx_model_path']}")
-print(f"Embedding model: {preprocessor_kwargs['embedding_onnx_model_path']}")
-
 if args.model_path != "":
     if "," in args.model_path:
         args.model_path = args.model_path.split(",")
