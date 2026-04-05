@@ -194,7 +194,6 @@ if args.model_path != "":
     print(f"Wakeword models: {', '.join(args.model_path)}")
     owwModel = Model(
         wakeword_model_paths=args.model_path,
-        inference_framework=args.inference_framework,
         **preprocessor_kwargs,
     )
 else:
